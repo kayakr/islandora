@@ -50,43 +50,61 @@
           return cues;
         }
 
-        const vtt_source = element.querySelector("track[kind='captions'], track[kind='subtitles']")?.getAttribute('src');
-        if (!vtt_source) { return; }
-        fetch(vtt_source).then(response => {
-          if (!response.ok) {
-            throw new Error(`HTTP error! status: ${response.status}`);
+        element.textTracks.addEventListener('change', function(e)  {
+          // Which track is showing?
+          for (let i = 0; i < this.length; i++) {
+            if (this[i].mode === 'showing') {
+              // Build cues for this track, now we know the index.
+              // @todo: Make this work with multiple audio elements.
+              var src = document.querySelectorAll("track[kind='captions'], track[kind='subtitles']")[i].getAttribute('src');
+              bindVttSource(src);
+            }
           }
-          return response.text();
-        }).then(text => {
-          const cues = parseWebVTT(text);
-
-          // Create a Custom Event attached to the timeupdate event to pass cues along.
-          element.addEventListener('timeupdate', (e) => {
-            const captionEvent = new CustomEvent('updateCaptions', { detail: cues })
-            e.target.dispatchEvent(captionEvent);
-          });
-          element.addEventListener('updateCaptions', (e) => {
-            if (!e.detail) {
-              return;
-            }
-
-            // Grab the caption for the current time.
-            const currentTime = e.target.currentTime;
-            let cue = e.detail.find(
-              (cue) =>
-                currentTime >= cue.start &&
-                currentTime <= cue.end
-            );
-
-            // Update the caption box.
-            let captionsBox = e.target.parentElement.querySelector('div.audioTrack')
-            if (cue?.text) {
-              captionsBox.innerHTML = cue.text.replace(/\n/g, "<br>");
-            } else {
-              captionsBox.innerHTML = '';
-            }
-          });
         });
+
+        // Invoke change event to get started.
+        const changeEvent = new Event('change');
+        element.textTracks.dispatchEvent(changeEvent);
+
+        function bindVttSource(vtt_source) {
+
+          fetch(vtt_source).then(response => {
+            if (!response.ok) {
+              throw new Error(`HTTP error! status: ${response.status}`);
+            }
+            return response.text();
+          }).then(text => {
+            const cues = parseWebVTT(text);
+
+            // Create a Custom Event attached to the timeupdate event to pass cues along.
+            element.addEventListener('timeupdate', (e) => {
+              const captionEvent = new CustomEvent('updateCaptions', { detail: cues })
+              e.target.dispatchEvent(captionEvent);
+            });
+            element.addEventListener('updateCaptions', (e) => {
+              if (!e.detail) {
+                return;
+              }
+
+              // Grab the caption for the current time.
+              const currentTime = e.target.currentTime;
+              let cue = e.detail.find(
+                  (cue) =>
+                      currentTime >= cue.start &&
+                      currentTime <= cue.end
+              );
+
+              // Update the caption box.
+              let captionsBox = e.target.parentElement.querySelector('div.audioTrack')
+              if (cue?.text) {
+                captionsBox.innerHTML = cue.text.replace(/\n/g, "<br>");
+              }
+              else {
+                captionsBox.innerHTML = '';
+              }
+            });
+          });
+        }
       })
     }
   }
