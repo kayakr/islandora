@@ -52,12 +52,14 @@
 
         element.textTracks.addEventListener('change', function(e)  {
           // Which track is showing?
+          element.setAttribute('data-showing', false);
           for (let i = 0; i < this.length; i++) {
             if (this[i].mode === 'showing') {
               // Build cues for this track, now we know the index.
               // @todo: Make this work with multiple audio elements.
               var src = document.querySelectorAll("track[kind='captions'], track[kind='subtitles']")[i].getAttribute('src');
               bindVttSource(src);
+              element.setAttribute('data-showing', true);
             }
           }
         });
@@ -85,19 +87,24 @@
               if (!e.detail) {
                 return;
               }
-
-              // Grab the caption for the current time.
-              const currentTime = e.target.currentTime;
-              let cue = e.detail.find(
-                  (cue) =>
-                      currentTime >= cue.start &&
-                      currentTime <= cue.end
-              );
-
+              // Check if a track is showing.
+              var showing = e.target.getAttribute('data-showing');
               // Update the caption box.
-              let captionsBox = e.target.parentElement.querySelector('div.audioTrack')
-              if (cue?.text) {
-                captionsBox.innerHTML = cue.text.replace(/\n/g, "<br>");
+              let captionsBox = e.target.parentElement.querySelector('div.audioTrack');
+              if (showing === 'true') {
+                // Grab the caption for the current time.
+                const currentTime = e.target.currentTime;
+                let cue = e.detail.find(
+                  (cue) =>
+                    currentTime >= cue.start &&
+                    currentTime <= cue.end
+                );
+                if (cue?.text) {
+                  captionsBox.innerHTML = cue.text.replace(/\n/g, "<br>");
+                }
+                else {
+                  captionsBox.innerHTML = '';
+                }
               }
               else {
                 captionsBox.innerHTML = '';
