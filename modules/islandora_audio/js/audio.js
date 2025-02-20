@@ -96,6 +96,7 @@
                 const currentTime = e.target.currentTime;
                 let cue = e.detail.find(
                   (cue) =>
+                    cue !== null &&
                     currentTime >= cue.start &&
                     currentTime <= cue.end
                 );
